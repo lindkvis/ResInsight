@@ -56,6 +56,7 @@
 #include "RimScriptCollection.h"
 #include "RimSummaryCaseMainCollection.h"
 #include "RimSummaryPlotCollection.h"
+#include "RimSummaryCrossPlotCollection.h"
 #include "RimView.h"
 #include "RimViewLinker.h"
 #include "RimViewLinkerCollection.h"
@@ -1037,6 +1038,11 @@ void RimProject::defineUiTreeOrdering(caf::PdmUiTreeOrdering& uiTreeOrdering, QS
             {
                 uiTreeOrdering.add(mainPlotCollection->summaryPlotCollection());
             }
+
+           if (mainPlotCollection->summaryCrossPlotCollection())
+           {
+               uiTreeOrdering.add(mainPlotCollection->summaryCrossPlotCollection());
+           }
 
            if (mainPlotCollection->wellLogPlotCollection())
             {

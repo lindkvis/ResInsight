@@ -31,6 +31,7 @@ class RimWellLogPlotCollection;
 class RimRftPlotCollection;
 class RimPltPlotCollection;
 class RimSummaryPlotCollection;
+class RimSummaryCrossPlotCollection;
 class RimSummaryPlot;
 class RifReaderEclipseSummary;
 class RimEclipseResultCase;
@@ -52,6 +53,7 @@ public:
     RimRftPlotCollection*       rftPlotCollection();
     RimPltPlotCollection*       pltPlotCollection();
     RimSummaryPlotCollection*   summaryPlotCollection();
+    RimSummaryCrossPlotCollection* summaryCrossPlotCollection();
     RimFlowPlotCollection*      flowPlotCollection();
 
     void                        deleteAllContainedObjects();
@@ -67,6 +69,7 @@ protected:
     caf::PdmChildField<RimRftPlotCollection*>     m_rftPlotCollection;
     caf::PdmChildField<RimPltPlotCollection*>     m_pltPlotCollection;
     caf::PdmChildField<RimSummaryPlotCollection*> m_summaryPlotCollection;
+    caf::PdmChildField<RimSummaryCrossPlotCollection*> m_summaryCrossPlotCollection;
     caf::PdmChildField<RimFlowPlotCollection*>    m_flowPlotCollection;
 
     caf::PdmField<bool>                           show;
