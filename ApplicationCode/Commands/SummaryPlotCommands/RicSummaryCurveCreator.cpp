@@ -349,6 +349,8 @@ void RicSummaryCurveCreator::updatePreviewCurvesFromCurveDefinitions(const std::
         RimSummaryCurve* curve = new RimSummaryCurve();
         curve->setSummaryCase(currentCase);
         curve->setSummaryAddress(curveDef.summaryAddress());
+        curve->setXSummaryAddress(curveDef.summaryAddress());
+
         curve->applyCurveAutoNameSettings(*m_curveNameConfig());
         m_previewPlot->addCurveNoUpdate(curve);
         curveLookCalc.setupCurveLook(curve);

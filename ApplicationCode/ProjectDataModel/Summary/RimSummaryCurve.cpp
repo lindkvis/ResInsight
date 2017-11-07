@@ -161,10 +161,19 @@ RimSummaryCurve::RimSummaryCurve()
     m_summaryCase.uiCapability()->setUiTreeChildrenHidden(true);
     m_summaryCase.uiCapability()->setAutoAddingOptionFromValue(false);
 
+    CAF_PDM_InitFieldNoDefault(&m_xSummaryCase, "XSummaryCase", "XCase", "", "", "");
+    m_xSummaryCase.uiCapability()->setUiTreeChildrenHidden(true);
+    m_xSummaryCase.uiCapability()->setAutoAddingOptionFromValue(false);
+
     CAF_PDM_InitFieldNoDefault(&m_selectedVariableDisplayField, "SelectedVariableDisplayVar", "Vector", "", "", "");
     m_selectedVariableDisplayField.xmlCapability()->setIOWritable(false);
     m_selectedVariableDisplayField.xmlCapability()->setIOReadable(false);
     m_selectedVariableDisplayField.uiCapability()->setUiReadOnly(true);
+
+    CAF_PDM_InitFieldNoDefault(&m_xSelectedVariableDisplayField, "XSelectedVariableDisplayVar", "XVector", "", "", "");
+    m_xSelectedVariableDisplayField.xmlCapability()->setIOWritable(false);
+    m_xSelectedVariableDisplayField.xmlCapability()->setIOReadable(false);
+    m_xSelectedVariableDisplayField.uiCapability()->setUiReadOnly(true);
 
     CAF_PDM_InitFieldNoDefault(&m_summaryFilter, "VarListFilter", "Filter", "", "", "");
     m_summaryFilter.uiCapability()->setUiTreeChildrenHidden(true);
@@ -184,6 +193,12 @@ RimSummaryCurve::RimSummaryCurve()
     m_curveVariable.uiCapability()->setUiTreeChildrenHidden(true);
 
     m_curveVariable = new RimSummaryAddress;
+
+    CAF_PDM_InitFieldNoDefault(&m_xCurveVariable, "XSummaryAddress", "XSummaryAddress", "", "", "");
+    m_xCurveVariable.uiCapability()->setUiHidden(true);
+    m_xCurveVariable.uiCapability()->setUiTreeChildrenHidden(true);
+
+    m_xCurveVariable = new RimSummaryAddress;
 
     CAF_PDM_InitFieldNoDefault(&m_plotAxis, "PlotAxis", "Axis", "", "", "");
 
@@ -223,6 +238,22 @@ RimSummaryCase* RimSummaryCurve::summaryCase() const
 //--------------------------------------------------------------------------------------------------
 /// 
 //--------------------------------------------------------------------------------------------------
+void RimSummaryCurve::setXSummaryCase(RimSummaryCase* sumCase)
+{
+    m_xSummaryCase = sumCase;
+}
+
+//--------------------------------------------------------------------------------------------------
+/// 
+//--------------------------------------------------------------------------------------------------
+RimSummaryCase* RimSummaryCurve::xSummaryCase() const
+{
+    return m_xSummaryCase();
+}
+
+//--------------------------------------------------------------------------------------------------
+/// 
+//--------------------------------------------------------------------------------------------------
 RifEclipseSummaryAddress RimSummaryCurve::summaryAddress()
 {
     return m_curveVariable->address();
@@ -248,6 +279,23 @@ std::string RimSummaryCurve::unitName()
     RifSummaryReaderInterface* reader = summaryReader();
     if (reader) return reader->unitName(this->summaryAddress());
     return "";
+}
+
+//--------------------------------------------------------------------------------------------------
+/// 
+//--------------------------------------------------------------------------------------------------
+RifEclipseSummaryAddress RimSummaryCurve::xSummaryAddress()
+{
+    return m_xCurveVariable->address();
+}
+
+//--------------------------------------------------------------------------------------------------
+/// 
+//--------------------------------------------------------------------------------------------------
+void RimSummaryCurve::setXSummaryAddress(const RifEclipseSummaryAddress& address)
+{
+    m_xCurveVariable->setAddress(address);
+    calculateCurveInterpolationFromAddress();
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -279,6 +327,23 @@ const std::vector<time_t>& RimSummaryCurve::timeSteps() const
 
     RifEclipseSummaryAddress addr = m_curveVariable()->address();
     return reader->timeSteps(addr);
+}
+
+//--------------------------------------------------------------------------------------------------
+/// 
+//--------------------------------------------------------------------------------------------------
+std::vector<double> RimSummaryCurve::xValues() const
+{
+    std::vector<double> values;
+
+    RifSummaryReaderInterface* reader = summaryReader();
+
+    if (!reader) return values;
+
+    RifEclipseSummaryAddress addr = m_xCurveVariable()->address();
+    reader->values(addr, &values);
+
+    return values;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -397,39 +462,51 @@ void RimSummaryCurve::onLoadDataAndUpdate(bool updateParentPlot)
     if (isCurveVisible())
     {
         std::vector<time_t> dateTimes = this->timeSteps();
-        std::vector<double> values = this->yValues();
+        std::vector<double> yValues = this->yValues();
+        std::vector<double> xValues = this->xValues();
 
         RimSummaryPlot* plot = nullptr;
         firstAncestorOrThisOfType(plot);
-        bool isLogCurve = plot->isLogarithmicScaleEnabled(this->yAxis());
 
-        if (dateTimes.size() > 0 && dateTimes.size() == values.size())
+        if (xValues.size() == 0)
         {
-            if (plot->timeAxisProperties()->timeMode() == RimSummaryTimeAxisProperties::DATE)
+            bool isLogCurve = plot->isLogarithmicScaleEnabled(this->yAxis());
+
+            if (dateTimes.size() > 0 && dateTimes.size() == yValues.size())
             {
-                m_qwtPlotCurve->setSamplesFromTimeTAndValues(dateTimes, values, isLogCurve);
+                if (plot->timeAxisProperties()->timeMode() == RimSummaryTimeAxisProperties::DATE)
+                {
+                    m_qwtPlotCurve->setSamplesFromTimeTAndValues(dateTimes, yValues, isLogCurve);
+                }
+                else
+                {
+                    double timeScale = plot->timeAxisProperties()->fromTimeTToDisplayUnitScale();
+
+                    std::vector<double> times;
+                    if (dateTimes.size())
+                    {
+                        time_t startDate = dateTimes[0];
+                        for (time_t& date : dateTimes)
+                        {
+                            times.push_back(timeScale*(date - startDate));
+                        }
+                    }
+
+                    m_qwtPlotCurve->setSamplesFromTimeAndValues(times, yValues, isLogCurve);
+                }
+
             }
             else
             {
-                double timeScale  = plot->timeAxisProperties()->fromTimeTToDisplayUnitScale();
-
-                std::vector<double> times;
-                if ( dateTimes.size() )
-                {
-                    time_t startDate = dateTimes[0];
-                    for ( time_t& date: dateTimes )
-                    {
-                        times.push_back(timeScale*(date - startDate));
-                    }
-                }
-
-                m_qwtPlotCurve->setSamplesFromTimeAndValues(times, values, isLogCurve);
+                m_qwtPlotCurve->setSamplesFromTimeTAndValues(std::vector<time_t>(), std::vector<double>(), isLogCurve);
             }
-           
         }
         else
         {
-            m_qwtPlotCurve->setSamplesFromTimeTAndValues(std::vector<time_t>(), std::vector<double>(), isLogCurve);
+            if (xValues.size() == yValues.size())
+            {
+                m_qwtPlotCurve->setSamplesFromXValuesAndYValues(xValues, yValues, false);
+            }
         }
 
         if ( updateParentPlot && m_parentQwtPlot)
@@ -452,6 +529,10 @@ void RimSummaryCurve::defineUiOrdering(QString uiConfigName, caf::PdmUiOrdering&
     caf::PdmUiGroup* curveDataGroup = uiOrdering.addNewGroup("Summary Vector");
     curveDataGroup->add(&m_summaryCase);
     curveDataGroup->add(&m_selectedVariableDisplayField);
+
+    caf::PdmUiGroup* xCurveDataGroup = uiOrdering.addNewGroup("X Summary Vector");
+    xCurveDataGroup->add(&m_xSummaryCase);
+    xCurveDataGroup->add(&m_xSelectedVariableDisplayField);
 
     caf::PdmUiGroup* curveVarSelectionGroup = curveDataGroup->addNewGroup("Vector Selection");
     curveVarSelectionGroup->setCollapsedByDefault(true);

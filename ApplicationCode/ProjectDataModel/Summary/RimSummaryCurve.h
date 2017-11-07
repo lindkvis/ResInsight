@@ -79,13 +79,19 @@ public:
 
     void                                    setSummaryCase(RimSummaryCase* sumCase);
     RimSummaryCase*                         summaryCase() const; 
+    void                                    setXSummaryCase(RimSummaryCase* sumCase);
+    RimSummaryCase*                         xSummaryCase() const;
 
     RifEclipseSummaryAddress                summaryAddress();
     void                                    setSummaryAddress(const RifEclipseSummaryAddress& address);
     std::string                             unitName();
 
+    RifEclipseSummaryAddress                xSummaryAddress();
+    void                                    setXSummaryAddress(const RifEclipseSummaryAddress& address);
+
     std::vector<double>                     yValues() const;
     const std::vector<time_t>&              timeSteps() const;
+    std::vector<double>                     xValues() const;
 
     void                                    setYAxis(RiaDefines::PlotAxis plotAxis);
     RiaDefines::PlotAxis                    yAxis() const;
@@ -115,8 +121,11 @@ private:
 private:
     // Fields
     caf::PdmPtrField<RimSummaryCase*>       m_summaryCase;
+    caf::PdmPtrField<RimSummaryCase*>       m_xSummaryCase;
     caf::PdmChildField<RimSummaryAddress*>  m_curveVariable;
+    caf::PdmChildField<RimSummaryAddress*>  m_xCurveVariable;
     caf::PdmField<QString>                  m_selectedVariableDisplayField;
+    caf::PdmField<QString>                  m_xSelectedVariableDisplayField;
 
     caf::PdmChildField<RimSummaryCurveAutoName*>   m_curveNameConfig;
 

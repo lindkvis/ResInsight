@@ -152,6 +152,49 @@ void RiuLineSegmentQwtPlotCurve::setSamplesFromTimeAndValues(const std::vector<d
 //--------------------------------------------------------------------------------------------------
 /// 
 //--------------------------------------------------------------------------------------------------
+void RiuLineSegmentQwtPlotCurve::setSamplesFromXValuesAndYValues(const std::vector<double>& xValues, const std::vector<double>& yValues, bool removeNegativeValues)
+{
+    enum { X, Y };
+
+    CVF_ASSERT(xValues.size() == yValues.size());
+
+    QPolygonF points;
+    const std::vector<double>* inputValues[2] = { &xValues, &yValues };
+
+    std::vector< std::pair<size_t, size_t> > filteredIntervals[2];
+
+    {
+        std::vector<double> filteredValues[2];
+
+        std::vector< std::pair<size_t, size_t> > intervalsOfValidValues[2];
+        RigCurveDataTools::calculateIntervalsOfValidValues(*inputValues[X], &intervalsOfValidValues[X], removeNegativeValues);
+        RigCurveDataTools::calculateIntervalsOfValidValues(*inputValues[Y], &intervalsOfValidValues[Y], removeNegativeValues);
+
+        // Simple check for now
+        if (intervalsOfValidValues[X] != intervalsOfValidValues[Y]) return;
+
+        for(int i = X; i <= Y; i++)
+        {
+            RigCurveDataTools::getValuesByIntervals(*inputValues[i], intervalsOfValidValues[i], &filteredValues[i]);
+            RigCurveDataTools::computePolyLineStartStopIndices(intervalsOfValidValues[i], &filteredIntervals[i]);
+        }
+
+        if (filteredValues[X].size() != filteredValues[Y].size()) return;
+
+        for (size_t i = 0; i < filteredValues[X].size(); i++)
+        {
+            points << QPointF(filteredValues[X][i], filteredValues[Y][i]);
+        }
+    }
+
+    this->setSamples(points);
+    this->setLineSegmentStartStopIndices(filteredIntervals[X]);
+    this->setLineSegmentStartStopIndices(filteredIntervals[Y]);
+}
+
+//--------------------------------------------------------------------------------------------------
+/// 
+//--------------------------------------------------------------------------------------------------
 void RiuLineSegmentQwtPlotCurve::drawCurve(QPainter* p, int style,
     const QwtScaleMap& xMap, const QwtScaleMap& yMap,
     const QRectF& canvasRect, int from, int to) const
